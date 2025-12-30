@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Next.js
+.next
+out
+
+# Testing
+coverage
+*.test.ts
+
+# Database
+*.db
+*.sqlite
+data/viewer.db
+
+# Encrypted files (keep in storage/)
+storage/*.enc
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Makefile
+Makefile
+
+# Docs
+*.md
+!README.md

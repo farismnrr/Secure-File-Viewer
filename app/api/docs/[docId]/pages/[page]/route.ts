@@ -1,0 +1,166 @@
+/**
+ * API: Get rendered page image
+ * GET /api/docs/[docId]/pages/[page]
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getDocument } from '@/lib/registry';
+import { validateAndConsumeNonce, getNonceInfo } from '@/lib/nonce';
+import { checkRateLimit } from '@/lib/rate-limiter';
+import { logAccess } from '@/lib/logger';
+import { renderPage, getPageCount } from '@/lib/pdf-renderer';
+import { applyWatermark } from '@/lib/watermark';
+import { decryptBuffer, getMasterKey } from '@/lib/crypto';
+import fs from 'fs';
+import path from 'path';
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ docId: string; page: string }> }
+) {
+    try {
+        const { docId, page: pageStr } = await params;
+        const pageNumber = parseInt(pageStr, 10);
+
+        if (isNaN(pageNumber) || pageNumber < 1) {
+            return NextResponse.json(
+                { error: 'Invalid page number' },
+                { status: 400 }
+            );
+        }
+
+        // Get client IP
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            || request.headers.get('x-real-ip')
+            || 'unknown';
+
+        const userAgent = request.headers.get('user-agent') || undefined;
+
+        // Rate limiting
+        const rateLimit = checkRateLimit(ip, '/api/docs/pages');
+        if (!rateLimit.allowed) {
+            logAccess(docId, 'rate_limited', { ip });
+            return NextResponse.json(
+                { error: 'Rate limit exceeded' },
+                { status: 429 }
+            );
+        }
+
+        // Get nonce from query or header
+        const nonce = request.nextUrl.searchParams.get('nonce')
+            || request.headers.get('x-nonce');
+
+        if (!nonce) {
+            logAccess(docId, 'invalid_nonce', { ip, metadata: { reason: 'missing' } });
+            return NextResponse.json(
+                { error: 'Nonce required' },
+                { status: 401 }
+            );
+        }
+
+        // Get nonce info before consuming
+        const nonceInfo = getNonceInfo(nonce);
+
+        // For page 1, consume the nonce. For other pages, just validate
+        let sessionId: string | null = null;
+        if (pageNumber === 1) {
+            sessionId = validateAndConsumeNonce(docId, nonce);
+            if (!sessionId) {
+                logAccess(docId, 'invalid_nonce', { ip, metadata: { nonce: nonce.substring(0, 8), page: pageNumber } });
+                return NextResponse.json(
+                    { error: 'Invalid or expired nonce' },
+                    { status: 401 }
+                );
+            }
+        } else {
+            // For subsequent pages, check if nonce was valid (consumed for page 1)
+            // We use the session from the nonce info
+            if (!nonceInfo) {
+                logAccess(docId, 'invalid_nonce', { ip, metadata: { reason: 'not_found', page: pageNumber } });
+                return NextResponse.json(
+                    { error: 'Invalid nonce' },
+                    { status: 401 }
+                );
+            }
+            sessionId = nonceInfo.session_id;
+
+            // Verify the nonce was consumed (used for page 1)
+            if (nonceInfo.used !== 1) {
+                // Nonce not yet consumed - must request page 1 first
+                return NextResponse.json(
+                    { error: 'Must request page 1 first' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // Get document metadata
+        const document = getDocument(docId);
+        if (!document || document.status !== 'active') {
+            return NextResponse.json(
+                { error: 'Document not found' },
+                { status: 404 }
+            );
+        }
+
+        // Load and decrypt PDF
+        const encPath = path.join(process.cwd(), document.encryptedPath);
+        if (!fs.existsSync(encPath)) {
+            console.error('Encrypted file not found:', encPath);
+            return NextResponse.json(
+                { error: 'Document file not found' },
+                { status: 500 }
+            );
+        }
+
+        const encryptedData = fs.readFileSync(encPath);
+        const key = getMasterKey();
+        const pdfBuffer = decryptBuffer(encryptedData, key);
+
+        // Check page count
+        const totalPages = await getPageCount(pdfBuffer);
+        if (pageNumber > totalPages) {
+            return NextResponse.json(
+                { error: `Page ${pageNumber} does not exist. Document has ${totalPages} pages.` },
+                { status: 404 }
+            );
+        }
+
+        // Render page to image
+        const pageImage = await renderPage(pdfBuffer, pageNumber, { scale: 2.0 });
+
+        // Apply watermark
+        const timestamp = new Date().toISOString();
+        const watermarkedImage = await applyWatermark(pageImage, {
+            ip: document.watermarkPolicy.showIp ? ip : undefined,
+            timestamp: document.watermarkPolicy.showTimestamp ? timestamp : undefined,
+            sessionId: document.watermarkPolicy.showSessionId ? sessionId : undefined,
+            customText: document.watermarkPolicy.customText
+        });
+
+        // Log access
+        logAccess(docId, 'page_request', {
+            sessionId: sessionId || undefined,
+            ip,
+            userAgent,
+            metadata: { page: pageNumber }
+        });
+
+        // Return image with cache headers
+        return new NextResponse(new Uint8Array(watermarkedImage), {
+            headers: {
+                'Content-Type': 'image/png',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'X-Page': pageNumber.toString(),
+                'X-Total-Pages': totalPages.toString()
+            }
+        });
+
+    } catch (error) {
+        console.error('Error rendering page:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}

@@ -1,0 +1,9 @@
+# Sample PDF files (not committed)
+*.pdf
+*.enc
+
+# Database
+*.db
+
+# Keep this directory
+!.gitkeep

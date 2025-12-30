@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Standalone output for Docker deployment
+  output: 'standalone',
+
+  // External packages for server-side
+  serverExternalPackages: ['better-sqlite3', 'canvas', 'sharp', 'pdfjs-dist'],
+
+  // Empty turbopack config to silence warning
+  turbopack: {},
+
+  // Disable strict mode to avoid double-fetching single-use nonces in dev
+  reactStrictMode: false,
 };
 
 export default nextConfig;

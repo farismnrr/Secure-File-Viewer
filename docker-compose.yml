@@ -1,0 +1,12 @@
+services:
+  secure-pdf-viewer:
+    image: ghcr.io/farismnrr/secure-pdf-viewer:latest
+    container_name: secure-pdf-viewer
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+    restart: unless-stopped
