@@ -45,6 +45,7 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy configuration files
 COPY next.config.ts ./
 COPY tailwind.config.ts ./
+COPY postcss.config.mjs ./
 COPY tsconfig.json ./
 COPY jest.config.ts ./
 COPY eslint.config.mjs ./
