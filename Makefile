@@ -155,11 +155,26 @@ build-docker: setup-postgres
 	echo "✅ Image tagged as $(DOCKER_IMAGE_NAME):$$tag and $(GHCR_REPO):$$tag"
 
 # Run Docker container
+# Run Docker container (Detached)
 start-docker: stop-compose
 	@read -p "Enter Docker tag to run (default: latest): " tag; \
 	tag=$${tag:-latest}; \
-	echo "🚀 Starting Docker container with tag: $$tag..."; \
-	docker run --rm -it --network="host" --env-file .env $(DOCKER_IMAGE_NAME):$$tag
+	echo "🚀 Starting Docker container (detached) with tag: $$tag..."; \
+	docker run -d --rm --name secure-file-viewer --network="host" --env-file .env $(DOCKER_IMAGE_NAME):$$tag
+	@echo "✅ Container started. Run 'make logs-docker' to view output."
+
+# Stop Docker container
+stop-docker:
+	@echo "🛑 Stopping secure-file-viewer container..."
+	@docker stop secure-file-viewer || echo "⚠️  Container not running or not found."
+
+# View Docker logs
+logs-docker:
+	@docker logs -f secure-file-viewer
+
+# Check Docker status
+status-docker:
+	@docker ps --filter name=secure-file-viewer
 
 # Commit and push to GitHub (triggers CI)
 push:

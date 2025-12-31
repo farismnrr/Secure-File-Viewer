@@ -43,7 +43,7 @@ export function extractAuthInfo(request: NextRequest): { tenantId: string | null
                 userId: decoded.sub
             };
         }
-    } catch (error) {
+    } catch {
 
     }
 

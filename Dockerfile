@@ -56,25 +56,37 @@ COPY app ./app
 COPY components ./components
 COPY lib ./lib
 COPY scripts ./scripts
-COPY migrations ./migrations
+COPY prisma ./prisma
 
 # Build
 ENV NODE_ENV=production
 
 # Run checks before build (CI style)
+# Run checks before build (CI style)
 RUN mkdir -p data
 RUN npm rebuild better-sqlite3
 RUN npm rebuild canvas
 RUN npm run lint
-# Run migrations for tests
-RUN npx tsx migrations/run.ts up
+
+# Run Unit Tests (using SQLite ephemeral DB)
+# 1. Switch to SQLite
+RUN cat prisma/schema.base.prisma prisma/schema.sqlite.prisma > prisma/schema.prisma
+ENV DATABASE_URL="file:./test.db"
+# 2. Generate Client for SQLite
+RUN npx prisma generate
+# 3. Push schema to test DB
+RUN npx prisma db push
+# 4. Run Tests
 RUN npm test
 
+# Clean up and Prepare for Production Build (Postgres)
+# 1. Switch back to Postgres
+RUN cat prisma/schema.base.prisma prisma/schema.postgres.prisma > prisma/schema.prisma
+# 2. Generate Client for Postgres (Implicitly done by npm run build -> prisma generate, but good to be explicit)
+RUN npx prisma generate
 
 RUN npm run build
 
-# Compile migrations
-RUN npx tsc migrations/*.ts --outDir dist/migrations --target es2020 --module commonjs --skipLibCheck --esModuleInterop
 
 # ============================================================================
 # Stage 3: Runtime (minimal & safe)
@@ -90,7 +102,12 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo \
     libgif7 \
     curl \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Prisma CLI for removals/migrations (Global)
+RUN npm install -g prisma@6.19.1
+
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
@@ -105,11 +122,9 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
-# Copy migrations and entrypoint
-COPY --from=builder --chown=nextjs:nextjs /app/dist/migrations ./migrations
 COPY --chown=nextjs:nextjs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
-RUN find migrations -name "*.ts" -type f -delete
+COPY --from=builder --chown=nextjs:nextjs /app/prisma ./prisma
 
 # Create storage and data directories with correct permissions
 RUN mkdir -p storage data

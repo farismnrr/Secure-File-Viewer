@@ -74,7 +74,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 viewUrl: `/v/${document.doc_id}`
             }
         });
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { status: false, message: 'Failed to get document' },
@@ -115,6 +115,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         const body = await request.json();
         const { title, status, watermarkPolicy } = body;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {
             updated_at: new Date()
         };
@@ -162,7 +163,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             status: true,
             message: 'Document updated successfully'
         });
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { status: false, message: 'Failed to update document' },
@@ -234,7 +235,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             status: true,
             message: 'Document deleted successfully'
         });
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { status: false, message: 'Failed to delete document' },

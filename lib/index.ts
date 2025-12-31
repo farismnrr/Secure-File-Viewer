@@ -13,7 +13,7 @@
 export * from './config';
 
 // Database
-export * from './db';
+
 
 // Utils
 export * from './utils';

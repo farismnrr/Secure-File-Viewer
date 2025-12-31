@@ -78,7 +78,7 @@ export async function getDocument(docId: string): Promise<DocumentMetadata | nul
                 updatedAt: doc.updated_at.toISOString()
             };
         }
-    } catch (error) {
+    } catch {
 
         // Fallback to legacy registry.json
     }

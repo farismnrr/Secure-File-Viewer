@@ -87,7 +87,7 @@ export async function GET(
             sessionId = nonceInfo.session_id;
 
             // Verify the nonce was consumed (used for page 1)
-            if (nonceInfo.used !== 1) {
+            if (!nonceInfo.used) {
                 // Nonce not yet consumed - must request page 1 first
                 return NextResponse.json(
                     { error: 'Must request page 1 first' },
@@ -202,7 +202,7 @@ export async function GET(
             }
         });
 
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { error: 'Internal server error' },

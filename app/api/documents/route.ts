@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
                 }
             }
         });
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { status: false, message: 'Failed to list documents' },
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
                 viewUrl: `/v/${docId}`
             }
         }, { status: 201 });
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { status: false, message: 'Failed to upload document' },

@@ -62,7 +62,7 @@ export async function verifyAdminAccess(token: string): Promise<VerifyResult> {
 
         return { valid: true, user };
 
-    } catch (error) {
+    } catch {
 
         return { valid: false, error: 'Service unavailable' };
     }
@@ -81,7 +81,7 @@ export function decodeJwt(token: string): User | null {
         const jsonPayload = atob(base64);
 
         return JSON.parse(jsonPayload);
-    } catch (e) {
+    } catch {
 
         return null;
     }

@@ -82,7 +82,7 @@ export async function GET(
                     const key = getMasterKey();
                     const pdfBuffer = decryptBuffer(encryptedData, key);
                     pageCount = await getPageCount(pdfBuffer);
-                } catch (err) {
+                } catch {
 
                     pageCount = 0;
                 }
@@ -96,7 +96,7 @@ export async function GET(
             sessionId: nonceInfo?.session_id
         });
 
-    } catch (error) {
+    } catch {
 
         return NextResponse.json(
             { error: 'Internal server error' },

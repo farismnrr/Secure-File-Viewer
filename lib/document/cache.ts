@@ -13,8 +13,8 @@ interface CacheEntry {
 const documentCache = new Map<string, CacheEntry>();
 
 // Configuration
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB soft limit per doc, or total? Let's just limit entry count for now.
+// const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB soft limit
 const MAX_ENTRIES = 20;
 
 /**
