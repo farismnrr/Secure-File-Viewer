@@ -33,7 +33,7 @@ export async function verifyAdminAccess(token: string): Promise<VerifyResult> {
     const config = getSsoConfig();
 
     if (!config.url || !config.apiKey) {
-        console.error('SSO_URL or API_KEY is not defined');
+
         return { valid: false, error: 'System configuration error' };
     }
 
@@ -63,7 +63,7 @@ export async function verifyAdminAccess(token: string): Promise<VerifyResult> {
         return { valid: true, user };
 
     } catch (error) {
-        console.error('Verify admin access error:', error);
+
         return { valid: false, error: 'Service unavailable' };
     }
 }
@@ -82,7 +82,7 @@ export function decodeJwt(token: string): User | null {
 
         return JSON.parse(jsonPayload);
     } catch (e) {
-        console.error('Failed to decode JWT:', e);
+
         return null;
     }
 }

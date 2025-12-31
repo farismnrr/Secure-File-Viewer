@@ -1,26 +1,26 @@
 /**
  * Next.js Middleware
- * Protects admin routes with JWT + tenant + role verification
+ * Protects routes with JWT + tenant + role verification
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyAdminAccess } from '@/lib/services/auth';
 
-// Routes that require admin authentication
-const PROTECTED_ROUTES = ['/admin', '/api/admin'];
+// Routes that require authentication
+const PROTECTED_ROUTES = ['/dashboard', '/api/documents'];
 
 // Routes that are always public
-const PUBLIC_ROUTES = ['/admin/login', '/admin/callback', '/api/auth'];
+const PUBLIC_ROUTES = ['/login', '/callback', '/api/auth'];
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // Skip non-admin routes
+    // Skip non-protected routes
     const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
     if (!isProtectedRoute) return NextResponse.next();
 
-    // Skip public admin routes
+    // Skip public routes
     const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
     if (isPublicRoute) return NextResponse.next();
 
@@ -34,7 +34,7 @@ export async function proxy(request: NextRequest) {
     // Verify token with SSO service
     let verifyResult;
     try {
-        verifyResult = await verifyAdminAccess(token);
+        verifyResult = await verifyAdminAccess(token); // Note: function name still has 'Admin' but it checks user role
     } catch (error) {
         console.error('Auth config error:', error);
         return handleUnauthorized(request, 'System configuration error');
@@ -89,7 +89,7 @@ function handleUnauthorized(request: NextRequest, message?: string): NextRespons
     }
 
     // For page routes, redirect to login
-    const loginUrl = new URL('/admin/login', request.url);
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
 
     if (message) {
@@ -105,9 +105,9 @@ function handleUnauthorized(request: NextRequest, message?: string): NextRespons
 
 export const config = {
     matcher: [
-        // Match admin pages
-        '/admin/:path*',
-        // Match admin API routes
-        '/api/admin/:path*'
+        // Match protected pages
+        '/dashboard/:path*',
+        // Match protected API routes
+        '/api/documents/:path*'
     ]
 };

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Secure Viewer - displays PDF pages with watermark and security features
+ * Secure Viewer - displays document pages with watermark and security features
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';

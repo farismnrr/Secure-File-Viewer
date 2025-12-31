@@ -2,7 +2,7 @@
  * Access logging service
  */
 
-import { query, execute, placeholder, getDbType } from '../db';
+import { prisma } from '../prisma';
 
 // =============================================================================
 // Types
@@ -16,7 +16,7 @@ export interface LogEntry {
     user_agent: string | null;
     action: string;
     metadata: string | null;
-    created_at: string;
+    created_at: Date;
 }
 
 export type LogAction =
@@ -50,11 +50,16 @@ export async function logAccess(
 ): Promise<void> {
     const metadataStr = options.metadata ? JSON.stringify(options.metadata) : null;
 
-    await execute(
-        `INSERT INTO access_logs (doc_id, session_id, ip, user_agent, action, metadata)
-         VALUES (${placeholder(1)}, ${placeholder(2)}, ${placeholder(3)}, ${placeholder(4)}, ${placeholder(5)}, ${placeholder(6)})`,
-        [docId, options.sessionId || null, options.ip || null, options.userAgent || null, action, metadataStr]
-    );
+    await prisma.access_logs.create({
+        data: {
+            doc_id: docId,
+            session_id: options.sessionId,
+            ip: options.ip,
+            user_agent: options.userAgent,
+            action: action,
+            metadata: metadataStr
+        }
+    });
 }
 
 /**
@@ -66,29 +71,25 @@ export async function getAccessLogs(
 ): Promise<LogEntry[]> {
     const { limit = 100, offset = 0, action } = options;
 
-    let sql = `SELECT * FROM access_logs WHERE doc_id = ${placeholder(1)}`;
-    const params: (string | number | null)[] = [docId];
-    let paramIndex = 2;
-
-    if (action) {
-        sql += ` AND action = ${placeholder(paramIndex++)}`;
-        params.push(action);
-    }
-
-    sql += ` ORDER BY created_at DESC LIMIT ${placeholder(paramIndex++)} OFFSET ${placeholder(paramIndex)}`;
-    params.push(limit, offset);
-
-    return query<LogEntry>(sql, params);
+    return prisma.access_logs.findMany({
+        where: {
+            doc_id: docId,
+            ...(action && { action })
+        },
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        skip: offset
+    });
 }
 
 /**
  * Get logs by session ID
  */
 export async function getLogsBySession(sessionId: string): Promise<LogEntry[]> {
-    return query<LogEntry>(
-        `SELECT * FROM access_logs WHERE session_id = ${placeholder(1)} ORDER BY created_at ASC`,
-        [sessionId]
-    );
+    return prisma.access_logs.findMany({
+        where: { session_id: sessionId },
+        orderBy: { created_at: 'asc' }
+    });
 }
 
 /**
@@ -98,21 +99,43 @@ export async function getSuspiciousActivity(
     options: { sinceMinutes?: number; minInvalidAttempts?: number } = {}
 ): Promise<{ ip: string; count: number }[]> {
     const { sinceMinutes = 60, minInvalidAttempts = 5 } = options;
-    const dbType = getDbType();
 
-    if (dbType === 'sqlite') {
-        return query<{ ip: string; count: number }>(
-            `SELECT ip, COUNT(*) as count FROM access_logs
-             WHERE action = 'invalid_nonce' AND created_at >= datetime('now', ${placeholder(1)})
-             GROUP BY ip HAVING count >= ${placeholder(2)} ORDER BY count DESC`,
-            [`-${sinceMinutes} minutes`, minInvalidAttempts]
-        );
-    }
+    const dateThreshold = new Date();
+    dateThreshold.setMinutes(dateThreshold.getMinutes() - sinceMinutes);
 
-    return query<{ ip: string; count: number }>(
-        `SELECT ip, COUNT(*) as count FROM access_logs
-         WHERE action = 'invalid_nonce' AND created_at >= NOW() - INTERVAL '${sinceMinutes} minutes'
-         GROUP BY ip HAVING COUNT(*) >= ${placeholder(1)} ORDER BY count DESC`,
-        [minInvalidAttempts]
-    );
+    const logs = await prisma.access_logs.groupBy({
+        by: ['ip'],
+        _count: {
+            _all: true
+        },
+        where: {
+            action: 'invalid_nonce',
+            created_at: {
+                gte: dateThreshold
+            }
+        },
+        having: {
+            ip: {
+                _count: {
+                    gte: minInvalidAttempts
+                }
+            }
+        },
+        orderBy: {
+            _count: {
+                ip: 'desc'
+            }
+        }
+    });
+
+    // Handle null ip? (ip is String? in schema). groupBy will skip nulls usually or group them.
+    // We filter nulls if needed, but schema allows ip nullable.
+    // Mapped to { ip, count }
+
+    return logs
+        .filter(l => l.ip !== null)
+        .map(l => ({
+            ip: l.ip as string,
+            count: l._count._all
+        }));
 }

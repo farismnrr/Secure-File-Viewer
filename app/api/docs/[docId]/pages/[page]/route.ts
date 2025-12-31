@@ -97,7 +97,7 @@ export async function GET(
         }
 
         // Get document metadata
-        const document = getDocument(docId);
+        const document = await getDocument(docId);
         if (!document || document.status !== 'active') {
             return NextResponse.json(
                 { error: 'Document not found' },
@@ -105,48 +105,75 @@ export async function GET(
             );
         }
 
-        // Load and decrypt PDF
+        // Check if this is an image file or PDF
+        const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/bmp'];
+        const isImage = imageTypes.includes(document.contentType);
 
-        // Load and decrypt PDF (with caching)
-        const loadPdfValues = async () => {
+        let pageImage: Buffer;
+        let totalPages: number;
+
+        if (isImage) {
+            // For images, there is only 1 page
+            totalPages = 1;
+            if (pageNumber > 1) {
+                return NextResponse.json(
+                    { error: `Page ${pageNumber} does not exist. Image has 1 page.` },
+                    { status: 404 }
+                );
+            }
+
+            // Load and decrypt image
             const encPath = path.join(process.cwd(), document.encryptedPath);
             if (!fs.existsSync(encPath)) {
-                throw new Error('Document file not found');
-            }
-            const encryptedData = fs.readFileSync(encPath);
-            const key = getMasterKey();
-            return decryptBuffer(encryptedData, key);
-        };
-
-        let pdfBuffer: Buffer;
-        try {
-            // Import dynamically to avoid circle deps or if top-level issues
-            const { getCachedDocument } = await import('@/lib/document/cache');
-            pdfBuffer = await getCachedDocument(docId, loadPdfValues);
-        } catch (err: unknown) {
-            console.error('Cache/Load error:', err);
-            const errorMessage = err instanceof Error ? err.message : String(err);
-
-            if (errorMessage.includes('not found')) {
                 return NextResponse.json(
                     { error: 'Document file not found' },
                     { status: 500 }
                 );
             }
-            throw err;
-        }
+            const encryptedData = fs.readFileSync(encPath);
+            const key = getMasterKey();
+            pageImage = decryptBuffer(encryptedData, key);
+        } else {
+            // PDF handling - Load and decrypt PDF (with caching)
+            const loadPdfValues = async () => {
+                const encPath = path.join(process.cwd(), document.encryptedPath);
+                if (!fs.existsSync(encPath)) {
+                    throw new Error('Document file not found');
+                }
+                const encryptedData = fs.readFileSync(encPath);
+                const key = getMasterKey();
+                return decryptBuffer(encryptedData, key);
+            };
 
-        // Check page count
-        const totalPages = await getPageCount(pdfBuffer);
-        if (pageNumber > totalPages) {
-            return NextResponse.json(
-                { error: `Page ${pageNumber} does not exist. Document has ${totalPages} pages.` },
-                { status: 404 }
-            );
-        }
+            let pdfBuffer: Buffer;
+            try {
+                const { getCachedDocument } = await import('@/lib/document/cache');
+                pdfBuffer = await getCachedDocument(docId, loadPdfValues);
+            } catch (err: unknown) {
 
-        // Render page to image
-        const pageImage = await renderPage(pdfBuffer, pageNumber, { scale: 2.0 });
+                const errorMessage = err instanceof Error ? err.message : String(err);
+
+                if (errorMessage.includes('not found')) {
+                    return NextResponse.json(
+                        { error: 'Document file not found' },
+                        { status: 500 }
+                    );
+                }
+                throw err;
+            }
+
+            // Check page count
+            totalPages = await getPageCount(pdfBuffer);
+            if (pageNumber > totalPages) {
+                return NextResponse.json(
+                    { error: `Page ${pageNumber} does not exist. Document has ${totalPages} pages.` },
+                    { status: 404 }
+                );
+            }
+
+            // Render page to image
+            pageImage = await renderPage(pdfBuffer, pageNumber, { scale: 2.0 });
+        }
 
         // Apply watermark
         const timestamp = new Date().toISOString();
@@ -176,7 +203,7 @@ export async function GET(
         });
 
     } catch (error) {
-        console.error('Error rendering page:', error);
+
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

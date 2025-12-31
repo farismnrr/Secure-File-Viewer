@@ -3,15 +3,16 @@
  */
 
 import { mintNonce, isNonceValid, validateAndConsumeNonce, getNonceInfo } from '../services/nonce';
-import { resetDb, closeDb } from '../db/test-helpers';
+import { prisma } from '../prisma';
 
 describe('Nonce Management', () => {
     beforeEach(async () => {
-        await resetDb();
+        // Clean up table before each test
+        await prisma.nonces.deleteMany();
     });
 
-    afterAll(() => {
-        closeDb();
+    afterAll(async () => {
+        await prisma.$disconnect();
     });
 
     describe('mintNonce', () => {
@@ -88,7 +89,7 @@ describe('Nonce Management', () => {
             expect(info).not.toBeNull();
             expect(info?.doc_id).toBe(docId);
             expect(info?.session_id).toBe(sessionId);
-            expect(info?.used).toBe(0);
+            expect(info?.used).toBe(false);
         });
 
         it('should return null for non-existent nonce', async () => {

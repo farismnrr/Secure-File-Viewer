@@ -90,7 +90,7 @@ export default function ViewerPage() {
             }
 
         } catch (err) {
-            console.error('Viewer init error:', err);
+
             setError(err instanceof Error ? err.message : 'Failed to initialize viewer');
         } finally {
             // Only stop loading if we are NOT waiting for password

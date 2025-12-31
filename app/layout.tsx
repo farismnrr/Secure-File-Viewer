@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Secure PDF Viewer",
-  description: "DRM-like secure document viewer with watermarking",
+  title: "Secure File Viewer",
+  description: "DRM-like secure document viewer for files, images, and more",
 };
 
 export default function RootLayout({

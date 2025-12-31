@@ -59,7 +59,7 @@ export async function GET(
         const nonceInfo = await getNonceInfo(nonce);
 
         // Get document metadata
-        const document = getDocument(docId);
+        const document = await getDocument(docId);
         if (!document || document.status !== 'active') {
             return NextResponse.json(
                 { error: 'Document not found' },
@@ -67,18 +67,25 @@ export async function GET(
             );
         }
 
-        // Get page count if not cached
+        // Get page count - images have 1 page, PDFs may have multiple
         let pageCount = document.pageCount;
         if (!pageCount) {
-            try {
-                const encPath = path.join(process.cwd(), document.encryptedPath);
-                const encryptedData = fs.readFileSync(encPath);
-                const key = getMasterKey();
-                const pdfBuffer = decryptBuffer(encryptedData, key);
-                pageCount = await getPageCount(pdfBuffer);
-            } catch (err) {
-                console.error('Error getting page count:', err);
-                pageCount = 0;
+            // Check if this is an image file
+            const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/bmp'];
+            if (imageTypes.includes(document.contentType)) {
+                pageCount = 1;
+            } else {
+                // It's a PDF, decrypt and get page count
+                try {
+                    const encPath = path.join(process.cwd(), document.encryptedPath);
+                    const encryptedData = fs.readFileSync(encPath);
+                    const key = getMasterKey();
+                    const pdfBuffer = decryptBuffer(encryptedData, key);
+                    pageCount = await getPageCount(pdfBuffer);
+                } catch (err) {
+
+                    pageCount = 0;
+                }
             }
         }
 
@@ -90,7 +97,7 @@ export async function GET(
         });
 
     } catch (error) {
-        console.error('Error getting document info:', error);
+
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

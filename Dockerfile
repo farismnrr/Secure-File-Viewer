@@ -111,6 +111,10 @@ COPY --chown=nextjs:nextjs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 RUN find migrations -name "*.ts" -type f -delete
 
+# Create storage and data directories with correct permissions
+RUN mkdir -p storage data
+RUN chown -R nextjs:nextjs storage data
+
 USER nextjs
 
 EXPOSE 3000

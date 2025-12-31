@@ -1,10 +1,6 @@
-/**
- * Document registry management
- */
-
 import fs from 'fs';
 import path from 'path';
-import { queryOneSync } from '../db';
+import { prisma } from '../prisma';
 
 // =============================================================================
 // Types
@@ -54,30 +50,16 @@ function saveRegistry(registry: RegistryData): void {
 // Document Operations
 // =============================================================================
 
-interface DbDocument {
-    doc_id: string;
-    title: string;
-    encrypted_path: string;
-    content_type: string;
-    page_count: number | null;
-    is_encrypted: number;
-    watermark_policy: string | null;
-    status: string;
-    created_at: string;
-    updated_at: string;
-}
-
 /**
  * Get a specific document by ID
  * Checks database first, then legacy registry.json
  */
-export function getDocument(docId: string): DocumentMetadata | null {
-    // Try database first (for documents uploaded via admin)
+export async function getDocument(docId: string): Promise<DocumentMetadata | null> {
+    // Try Prisma database first
     try {
-        const doc = queryOneSync<DbDocument>(
-            'SELECT * FROM documents WHERE doc_id = ? LIMIT 1',
-            [docId]
-        );
+        const doc = await prisma.documents.findUnique({
+            where: { doc_id: docId }
+        });
 
         if (doc) {
             const watermarkPolicy = doc.watermark_policy
@@ -88,15 +70,16 @@ export function getDocument(docId: string): DocumentMetadata | null {
                 docId: doc.doc_id,
                 title: doc.title,
                 encryptedPath: doc.encrypted_path,
-                contentType: doc.content_type,
+                contentType: doc.content_type || 'application/pdf',
                 pageCount: doc.page_count ?? undefined,
                 watermarkPolicy,
                 status: doc.status as 'active' | 'inactive',
-                createdAt: doc.created_at,
-                updatedAt: doc.updated_at
+                createdAt: doc.created_at.toISOString(),
+                updatedAt: doc.updated_at.toISOString()
             };
         }
-    } catch {
+    } catch (error) {
+
         // Fallback to legacy registry.json
     }
 
@@ -106,9 +89,9 @@ export function getDocument(docId: string): DocumentMetadata | null {
 }
 
 /**
- * Get all active documents (legacy)
+ * Get all active documents (legacy + prisma?) 
  */
-export function listDocuments(): DocumentMetadata[] {
+export async function listDocuments(): Promise<DocumentMetadata[]> {
     const registry = loadRegistry();
     return registry.documents.filter(doc => doc.status === 'active');
 }
@@ -153,7 +136,7 @@ export function deactivateDocument(docId: string): boolean {
 /**
  * Check if document exists and is active
  */
-export function isDocumentActive(docId: string): boolean {
-    const doc = getDocument(docId);
+export async function isDocumentActive(docId: string): Promise<boolean> {
+    const doc = await getDocument(docId);
     return doc?.status === 'active';
 }

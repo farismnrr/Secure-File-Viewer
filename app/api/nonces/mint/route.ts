@@ -8,7 +8,7 @@ import { mintNonce } from '@/lib/services/nonce';
 import { getDocument } from '@/lib/document/registry';
 import { checkRateLimit } from '@/lib/services/rate-limiter';
 import { logAccess } from '@/lib/services/logger';
-import { queryOne, placeholder } from '@/lib/db/query';
+import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/utils/crypto';
 
 export const dynamic = 'force-dynamic';
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if document exists
-        const document = getDocument(docId);
+        // Check if document exists using registry (which uses Prisma now)
+        const document = await getDocument(docId);
         if (!document || document.status !== 'active') {
             return NextResponse.json(
                 { error: 'Document not found' },
@@ -56,8 +56,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Check password protection
-        interface DocWithPassword { password_hash: string | null; }
-        const dbDoc = await queryOne<DocWithPassword>(`SELECT password_hash FROM documents WHERE doc_id = ${placeholder(1)}`, [docId]);
+        // We can query prisma directly for password_hash to confirm
+        const dbDoc = await prisma.documents.findUnique({
+            where: { doc_id: docId },
+            select: { password_hash: true }
+        });
 
         if (dbDoc && dbDoc.password_hash) {
             const { password } = body;
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error minting nonce:', error);
+
         return NextResponse.json(
             { error: `Server Error: ${error instanceof Error ? error.message : String(error)}` },
             { status: 500 }

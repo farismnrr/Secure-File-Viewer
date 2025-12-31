@@ -1,10 +1,10 @@
-# Secure PDF Viewer - Makefile for Development Automation
+# Secure File Viewer - Makefile for Development Automation
 
 .PHONY: help dev build start test test-watch lint clean install encrypt add key build-docker start-docker docker-push kill migrate-up migrate-down migrate-fresh migrate-create migrate-status
 
 # Default target
 help:
-	@echo "Secure PDF Viewer - Available Commands:"
+	@echo "Secure File Viewer - Available Commands:"
 	@echo ""
 	@echo "  make dev              - Run development server with hot reload"
 	@echo "  make build            - Build production bundle"
@@ -25,18 +25,26 @@ help:
 	@echo "  make clean            - Clean build artifacts and cache"
 	@echo "  make kill             - Kill process on port 3000"
 	@echo "  make key              - Generate encryption key"
-	@echo "  make migrate-up       - Run pending database migrations"
-	@echo "  make migrate-down     - Rollback last migration"
-	@echo "  make migrate-fresh    - Drop all tables and re-run migrations"
-	@echo "  make migrate-create   - Create new migration file"
-	@echo "  make migrate-status   - Show migration status"
-	@echo "  make db-reset         - Alias for migrate-fresh"
+	@echo "  make migrate-up       - Run pending database migrations (Apply)"
+	@echo "  make migrate-down     - Reset database (Drop & Re-apply)"
 	@echo ""
+
+# --- Database Configuration (Dynamic Schema) ---
+
+setup-sqlite:
+	@echo "🔧 Configuring Prisma for SQLite (Local)..."
+	@cat prisma/schema.sqlite.prisma prisma/schema.base.prisma > prisma/schema.prisma
+	@echo "✅/prisma/schema.prisma set to SQLite"
+
+setup-postgres:
+	@echo "🔧 Configuring Prisma for PostgreSQL (Docker)..."
+	@cat prisma/schema.postgres.prisma prisma/schema.base.prisma > prisma/schema.prisma
+	@echo "✅/prisma/schema.prisma set to PostgreSQL"
 
 # --- Development ---
 
-# Run development server with hot reload
-dev:
+# Run development server with hot reload (Uses SQLite)
+dev: setup-sqlite generate
 	@echo "🚀 Starting development server with hot reload..."
 	npm run dev
 
@@ -58,12 +66,12 @@ install:
 # --- Testing ---
 
 # Run all unit tests
-test:
+test: setup-sqlite
 	@echo "🧪 Running unit tests..."
 	npm test
 
 # Run tests in watch mode
-test-watch:
+test-watch: setup-sqlite
 	@echo "🧪 Running tests in watch mode..."
 	npm run test:watch
 
@@ -135,11 +143,11 @@ key:
 	@echo "💡 Add this to your .env as ENCRYPTION_MASTER_KEY"
 
 # --- Docker Configuration ---
-DOCKER_IMAGE_NAME = secure-pdf-viewer
-GHCR_REPO = ghcr.io/farismnrr/secure-pdf-viewer
+DOCKER_IMAGE_NAME = secure-file-viewer
+GHCR_REPO = ghcr.io/farismnrr/secure-file-viewer
 
 # Build Docker image
-build-docker:
+build-docker: setup-postgres
 	@read -p "Enter Docker tag (default: latest): " tag; \
 	tag=$${tag:-latest}; \
 	echo "🐳 Building Docker image with tag: $$tag..."; \
@@ -166,21 +174,6 @@ push:
 	fi
 	@echo "☁️  Pushing to origin..."
 	git push
-	@echo "🚀 Triggering GitHub Actions workflow for Docker push..."
-	@command -v gh >/dev/null 2>&1 || ( \
-		if command -v apt-get >/dev/null 2>&1; then \
-			echo "⬇️  Installing GitHub CLI via apt..."; \
-			SUDO=$$(command -v sudo >/dev/null 2>&1 && echo sudo || echo); \
-			$$SUDO apt-get update && $$SUDO apt-get install -y gh || { echo "❌ Failed to install gh"; exit 1; }; \
-		else \
-			echo "❌ GitHub CLI 'gh' not found and auto-install is not configured for this OS."; \
-			echo "   Install from https://cli.github.com/ then rerun 'make push'"; \
-			exit 1; \
-		fi \
-	)
-	@echo "📦 Triggering workflow 'secure-pdf-viewer.yml'..."
-	@gh workflow run secure-pdf-viewer.yml --ref main || echo "⚠️  Could not trigger workflow automatically. Check if 'gh' is authenticated."
-	@echo "✅ Workflow dispatched (if configured). Track with 'gh run watch --latest'"
 
 # Push local image to GitHub Container Registry
 push-local: build-docker
@@ -214,67 +207,24 @@ stop-compose:
 compose-logs:
 	docker compose logs -f
 
-# --- Database Migrations ---
+# --- Database Migrations (Prisma) ---
 
-# Run all pending migrations
-migrate-up:
-	@echo "⬆️  Running migrations..."
-	@export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
-	npx tsx migrations/run.ts up
+# Migrate Up (Apply)
+migrate-up: setup-sqlite
+	npx prisma migrate dev
 
-# Rollback last migration
-migrate-down:
-	@echo "⬇️  Rolling back last migration..."
-	@export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
-	npx tsx migrations/run.ts down
+# Migrate Down (Drop/Reset)
+migrate-down: setup-sqlite
+	npx prisma migrate reset --force
 
-# Drop all tables and re-run migrations
-migrate-fresh:
-	@echo "🔄 Fresh migration (drop all + migrate)..."
-	@read -p "⚠️  This will DELETE ALL DATA. Continue? [y/N] " confirm; \
-	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
-		npx tsx migrations/run.ts fresh; \
-	else \
-		echo "❌ Cancelled"; \
-	fi
+# Open Prisma Studio
+studio: setup-sqlite
+	npx prisma studio
 
-# Create new migration file
-migrate-create:
-	@read -p "Enter migration name: " name; \
-	if [ -z "$$name" ]; then \
-		echo "❌ Migration name required"; \
-		exit 1; \
-	fi; \
-	count=$$(ls -1 migrations/*.ts 2>/dev/null | grep -E '^migrations/[0-9]{3}_' | wc -l); \
-	next=$$(printf "%03d" $$((count + 1))); \
-	filename="migrations/$${next}_$${name}.ts"; \
-	echo "Creating $$filename..."; \
-	echo "/**" > "$$filename"; \
-	echo " * Migration: $${name}" >> "$$filename"; \
-	echo " */" >> "$$filename"; \
-	echo "" >> "$$filename"; \
-	echo "import { MigrationRunner } from './runner';" >> "$$filename"; \
-	echo "" >> "$$filename"; \
-	echo "export const name = '$${next}_$${name}';" >> "$$filename"; \
-	echo "" >> "$$filename"; \
-	echo "export async function up(runner: MigrationRunner): Promise<void> {" >> "$$filename"; \
-	echo "  // Add migration logic here" >> "$$filename"; \
-	echo "}" >> "$$filename"; \
-	echo "" >> "$$filename"; \
-	echo "export async function down(runner: MigrationRunner): Promise<void> {" >> "$$filename"; \
-	echo "  // Add rollback logic here" >> "$$filename"; \
-	echo "}" >> "$$filename"; \
-	echo "✅ Created $$filename"
+# Generate client
+generate:
+	npx prisma generate
 
-# Show migration status
-migrate-status:
-	@echo "📋 Migration status..."
-	@export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
-	npx tsx migrations/run.ts status
-
-# Reset database (legacy - now alias to migrate-fresh)
-db-reset: migrate-fresh
 
 
 # --- Cleanup ---
