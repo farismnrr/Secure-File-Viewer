@@ -9,6 +9,8 @@ import { getDocument } from '@/lib/registry';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { logAccess } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
     try {
         // Get client IP

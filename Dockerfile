@@ -1,18 +1,19 @@
 # ============================================================================
 # Stage 1: Dependencies (cache-friendly)
 # ============================================================================
-FROM node:20-alpine AS deps
+FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 
 # Native build deps (ONLY for build)
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    cairo-dev \
-    pango-dev \
-    libjpeg-turbo-dev \
-    giflib-dev
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg62-turbo-dev \
+    libgif-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy ONLY dependency manifests
 COPY package.json package-lock.json ./
@@ -23,20 +24,22 @@ RUN npm ci --ignore-scripts
 # ============================================================================
 # Stage 2: Build
 # ============================================================================
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
 # Same build deps (must match deps stage)
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    cairo-dev \
-    pango-dev \
-    libjpeg-turbo-dev \
-    giflib-dev
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg62-turbo-dev \
+    libgif-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy node_modules
+# Copy dependencies
+COPY package.json package-lock.json ./
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy configuration files
@@ -56,6 +59,9 @@ COPY scripts ./scripts
 ENV NODE_ENV=production
 
 # Run checks before build (CI style)
+RUN mkdir -p data
+RUN npm rebuild better-sqlite3
+RUN npm rebuild canvas
 RUN npm run lint
 RUN npm test
 
@@ -70,14 +76,16 @@ WORKDIR /app
 # Runtime libs ONLY
 RUN apt-get update && apt-get install -y \
     ca-certificates \
-    cairo \
-    pango \
+    libcairo2 \
+    libpango-1.0-0 \
     libjpeg62-turbo \
-    giflib \
+    libgif7 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
+ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
 # Non-root user
@@ -91,5 +99,9 @@ COPY --from=builder /app/public ./public
 USER nextjs
 
 EXPOSE 3000
+
+# Health check (use 127.0.0.1 to avoid ipv6 resolution issues)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://127.0.0.1:3000/ || exit 1
 
 CMD ["node", "server.js"]

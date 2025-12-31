@@ -19,9 +19,7 @@ interface CanvasAndContext {
 
 class NodeCanvasFactory {
     create(width: number, height: number) {
-        // @ts-expect-error - mismatch in context types between canvas and pdfjs-dist
         const canvas = createCanvas(width, height);
-        // @ts-expect-error - context type mismatch
         const context = canvas.getContext('2d');
         return {
             canvas,

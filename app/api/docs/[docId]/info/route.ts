@@ -13,6 +13,8 @@ import { decryptBuffer, getMasterKey } from '@/lib/crypto';
 import fs from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ docId: string }> }

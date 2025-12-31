@@ -1,6 +1,6 @@
 # Secure PDF Viewer - Makefile for Development Automation
 
-.PHONY: help dev build start test test-watch lint clean install encrypt add key docker-build docker-start docker-push kill
+.PHONY: help dev build start test test-watch lint clean install encrypt add key build-docker start-docker docker-push kill
 
 # Default target
 help:
@@ -16,8 +16,10 @@ help:
 	@echo "  make install          - Install dependencies"
 	@echo "  make encrypt          - Encrypt a PDF file (interactive)"
 	@echo "  make add PDF=<path>   - Quick add PDF (auto-generates ID)"
-	@echo "  make docker-build     - Build Docker image"
-	@echo "  make docker-start     - Run Docker container"
+	@echo "  make build-docker     - Build Docker image"
+	@echo "  make start-docker     - Run Docker container"
+	@echo "  make start-compose    - Start services via Docker Compose"
+	@echo "  make stop-compose     - Stop services via Docker Compose"
 	@echo "  make push             - Commit & Push changes (Triggers CI)"
 	@echo "  make push-local       - Push local Docker image to GHCR"
 	@echo "  make clean            - Clean build artifacts and cache"
@@ -132,7 +134,7 @@ DOCKER_IMAGE_NAME = secure-pdf-viewer
 GHCR_REPO = ghcr.io/farismnrr/secure-pdf-viewer
 
 # Build Docker image
-docker-build:
+build-docker:
 	@read -p "Enter Docker tag (default: latest): " tag; \
 	tag=$${tag:-latest}; \
 	echo "🐳 Building Docker image with tag: $$tag..."; \
@@ -140,7 +142,7 @@ docker-build:
 	echo "✅ Image tagged as $(DOCKER_IMAGE_NAME):$$tag and $(GHCR_REPO):$$tag"
 
 # Run Docker container
-docker-start:
+start-docker: stop-compose
 	@read -p "Enter Docker tag to run (default: latest): " tag; \
 	tag=$${tag:-latest}; \
 	echo "🚀 Starting Docker container with tag: $$tag..."; \
@@ -176,7 +178,7 @@ push:
 	@echo "✅ Workflow dispatched (if configured). Track with 'gh run watch --latest'"
 
 # Push local image to GitHub Container Registry
-push-local:
+push-local: build-docker
 	@read -p "Enter Docker tag to push (default: latest): " tag; \
 	tag=$${tag:-latest}; \
 	echo "🚀 Pushing to GHCR - tag: $$tag..."; \
@@ -193,13 +195,13 @@ push-local:
 # --- Docker Compose Management ---
 
 # Start services (pulls from GHCR)
-compose-up:
+start-compose:
 	@echo "🚀 Starting services via Docker Compose..."
 	docker compose up -d
 	@echo "✅ Services started. Run 'make compose-logs' to view logs."
 
 # Stop services
-compose-down:
+stop-compose:
 	@echo "🛑 Stopping services..."
 	docker compose down
 
