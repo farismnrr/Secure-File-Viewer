@@ -1,11 +1,11 @@
-name: Secure PDF Viewer Build (Manual)
+name: Secure File Viewer Build (Manual)
 
 on:
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/farismnrr/secure-pdf-viewer
+  IMAGE_NAME: ghcr.io/farismnrr/secure-file-viewer
 
 jobs:
   build-and-push:

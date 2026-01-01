@@ -1,36 +1,152 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Secure File Viewer
 
-## Getting Started
+A production-ready, secure document viewer for encrypted files. Built with Next.js and designed to display PDF documents and images with multi-tenant SSO authentication.
 
-First, run the development server:
+## Key Features
+
+- **Secure File Handling**: AES-256 encryption for stored documents
+- **Multi-format Support**: PDF documents and images (JPG, PNG, WEBP, BMP)
+- **SSO Authentication**: Integration with Multi-Tenant User Management Service
+- **Role-based Access**: Admin and user role separation
+- **Document Management**: Upload, view, and manage encrypted documents
+- **Page Rendering**: Server-side PDF rendering with caching for performance
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Database**: PostgreSQL / SQLite (via Prisma)
+- **PDF Rendering**: pdf.js + Canvas
+- **Encryption**: AES-256-GCM
+
+## How to Run (Local Development)
+
+### 1. Prerequisites
+
+Ensure you have the following installed:
+- **Node.js** 18+
+- **npm** or **yarn**
+- **Docker** (for database)
+
+### 2. Start Database
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker run --name postgres-sql -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:alpine
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Configuration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+# Edit .env with your SSO URL and Tenant ID
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required environment variables:
+| Variable | Description |
+|----------|-------------|
+| `SSO_URL` | URL of the SSO service |
+| `TENANT_ID` | Your tenant UUID from SSO |
+| `DATABASE_URL` | Database connection string |
+| `ENCRYPTION_KEY` | 32-byte hex key for file encryption |
 
-## Learn More
+### 4. Database Migration
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+make migrate-up
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Run Application
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Development:**
+```bash
+make dev
+```
 
-## Deploy on Vercel
+**Docker:**
+```bash
+make start-docker
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The server will be available at `http://localhost:3000`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `make help` | Show all available commands |
+| `make dev` | Run development server |
+| `make test` | Run unit tests |
+| `make lint` | Run ESLint |
+| `make build-docker` | Build Docker image |
+| `make start-docker` | Start Docker container |
+| `make stop-docker` | Stop Docker container |
+| `make push` | Trigger CI/CD build |
+| `make push-local` | Build and push multi-arch image |
+| `make migrate-up` | Run database migrations |
+| `make key` | Generate encryption key |
+| `make encrypt` | Encrypt a PDF file |
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/           # API routes
+│   ├── dashboard/     # Protected dashboard pages
+│   ├── login/         # Login page
+│   └── callback/      # SSO callback handler
+├── lib/
+│   ├── crypto/        # Encryption utilities
+│   ├── db/            # Database connection
+│   └── services/      # Auth services
+├── components/        # UI components
+├── services/          # Git submodules
+│   └── Multitenant-User-Management-Service/
+└── prisma/            # Database schema
+```
+
+## Supported File Types
+
+| Type | Extensions | MIME Types |
+|------|------------|------------|
+| PDF | `.pdf` | `application/pdf` |
+| JPEG | `.jpg`, `.jpeg` | `image/jpeg` |
+| PNG | `.png` | `image/png` |
+| WebP | `.webp` | `image/webp` |
+| BMP | `.bmp` | `image/bmp` |
+
+## Services
+
+This project includes the following service as a Git submodule:
+
+### Multi-Tenant User Management Service
+
+| Property | Value |
+|----------|-------|
+| **Location** | `services/Multitenant-User-Management-Service/` |
+| **Backend** | Rust + Actix-web |
+| **Frontend** | Vue.js + Vite |
+| **Database** | PostgreSQL / SQLite |
+| **Auth** | JWT (Access + Refresh Tokens) |
+| **Features** | Multi-tenant SSO, RBAC, Rate Limiting |
+
+📚 **[Full Documentation](services/Multitenant-User-Management-Service/docs/README.md)**
+
+## SSO Integration
+
+This app uses the User Management Service above for authentication.
+
+**How it works:**
+1. User clicks login → redirected to SSO with `tenant_id` + `redirect_uri`
+2. SSO generates `state`/`nonce` automatically for security
+3. After login, SSO redirects back with `access_token` in URL hash
+4. App extracts token and stores in sessionStorage
+
+**Quick Setup:**
+1. Create a tenant: `make create-tenant` (in SSO service)
+2. Add your domain to `VITE_ALLOWED_ORIGINS` in SSO's `.env`
+3. Set `SSO_URL` and `TENANT_ID` in this app's `.env`
+
+## License
+
+Private - All rights reserved.

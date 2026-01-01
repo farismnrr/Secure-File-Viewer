@@ -1,7 +1,7 @@
 services:
-  secure-pdf-viewer:
-    image: ghcr.io/farismnrr/secure-pdf-viewer:latest
-    container_name: secure-pdf-viewer
+  secure-file-viewer:
+    image: ghcr.io/farismnrr/secure-file-viewer:latest
+    container_name: secure-file-viewer
     ports:
       - "3000:3000"
     env_file:

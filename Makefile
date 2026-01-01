@@ -143,8 +143,8 @@ key:
 	@echo "💡 Add this to your .env as ENCRYPTION_MASTER_KEY"
 
 # --- Docker Configuration ---
-DOCKER_IMAGE_NAME = secure-pdf-viewer
-GHCR_REPO = ghcr.io/farismnrr/secure-pdf-viewer
+DOCKER_IMAGE_NAME = secure-file-viewer
+GHCR_REPO = ghcr.io/farismnrr/secure-file-viewer
 
 # Build Docker image
 build-docker: setup-postgres
@@ -190,8 +190,8 @@ push:
 			exit 1; \
 		fi \
 	)
-	@echo "📦 Triggering workflow 'secure-pdf-viewer.yml'..."
-	@gh workflow run secure-pdf-viewer.yml --ref main
+	@echo "📦 Triggering workflow 'secure-file-viewer.yml'..."
+	@gh workflow run secure-file-viewer.yml --ref main
 	@echo "✅ Workflow dispatched. Track with 'gh run watch --latest'"
 
 # Push local image to GitHub Container Registry
