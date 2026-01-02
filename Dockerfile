@@ -57,7 +57,6 @@ COPY components ./components
 COPY lib ./lib
 COPY scripts ./scripts
 COPY drizzle.config.ts ./
-COPY drizzle ./drizzle
 
 # Build
 ENV NODE_ENV=production
@@ -120,7 +119,6 @@ COPY --from=builder --chown=nextjs:nextjs /app/drizzle.config.ts ./
 # Schema is needed for migration, ensure directory exists
 RUN mkdir -p lib/db
 COPY --from=builder --chown=nextjs:nextjs /app/lib/db/schema.ts ./lib/db/
-COPY --from=builder --chown=nextjs:nextjs /app/drizzle ./drizzle
 
 # Create storage and data directories with correct permissions
 RUN mkdir -p storage data
