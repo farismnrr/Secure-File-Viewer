@@ -13,13 +13,14 @@ RUN apt-get update && apt-get install -y \
     libpango1.0-dev \
     libjpeg62-turbo-dev \
     libgif-dev \
+    libfontconfig1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy ONLY dependency manifests
 COPY package.json package-lock.json ./
 
 # Install deps
-RUN npm ci --ignore-scripts
+RUN npm ci
 
 # ============================================================================
 # Stage 2: Build
@@ -36,6 +37,7 @@ RUN apt-get update && apt-get install -y \
     libpango1.0-dev \
     libjpeg62-turbo-dev \
     libgif-dev \
+    libfontconfig1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependencies
@@ -65,7 +67,6 @@ ENV NODE_ENV=production
 # Run checks before build (CI style)
 RUN mkdir -p data
 RUN npm rebuild better-sqlite3
-RUN npm rebuild canvas
 RUN npm run lint
 
 # Run Unit Tests
@@ -89,6 +90,7 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libjpeg62-turbo \
     libgif7 \
+    libfontconfig1 \
     curl \
     openssl \
     && rm -rf /var/lib/apt/lists/*

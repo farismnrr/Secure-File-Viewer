@@ -2,19 +2,21 @@
  * PDF rendering utilities - convert PDF pages to images
  */
 
-import { createCanvas, Image } from 'canvas';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+import { createCanvas, Image, ImageData, DOMMatrix, Path2D } from '@napi-rs/canvas';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import path from 'path';
 
-// Fix for "Image or Canvas expected" error in Node.js
+// Fix for polyfills needed by PDF.js v4 in Node.js
 if (typeof global !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (global as any).Image = Image;
+    (global as any).ImageData = ImageData;
+    (global as any).DOMMatrix = DOMMatrix;
+    (global as any).Path2D = Path2D;
 }
 
 // Fix for "No GlobalWorkerOptions.workerSrc specified" error in Node.js
 // Point to the local worker file in node_modules
-pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.js');
+pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
 
 // =============================================================================
 // Types
