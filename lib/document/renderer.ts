@@ -3,7 +3,7 @@
  */
 
 import { createCanvas } from 'canvas';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
@@ -60,7 +60,7 @@ export async function getPageCount(pdfBuffer: Buffer): Promise<number> {
     const doc = await pdfjsLib.getDocument({
         data,
         useSystemFonts: true,
-        canvasFactory: new NodeCanvasFactory()
+        CanvasFactory: NodeCanvasFactory
     }).promise;
     const count = doc.numPages;
     doc.destroy();
@@ -81,7 +81,7 @@ export async function renderPage(
     const doc = await pdfjsLib.getDocument({
         data,
         useSystemFonts: true,
-        canvasFactory: new NodeCanvasFactory()
+        CanvasFactory: NodeCanvasFactory
     }).promise;
 
     if (pageNumber < 1 || pageNumber > doc.numPages) {
