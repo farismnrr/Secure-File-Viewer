@@ -94,12 +94,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Drizzle CLI, ORM, Postgres driver, and TSX for migrations (Global)
-# We need better-sqlite3 for migrations when DB_TYPE=sqlite
-RUN apt-get update && apt-get install -y python3 make g++ \
-    && npm install -g drizzle-kit@0.31.8 drizzle-orm@0.39.1 postgres@3.4.7 tsx better-sqlite3@11.6.0 \
-    && apt-get purge -y python3 make g++ \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+RUN npm install -g drizzle-kit@0.30.4 drizzle-orm@0.39.1 postgres@3.4.7 tsx
 
 # Ensure global modules are discoverable for runtime migrations
 ENV NODE_PATH=/usr/local/lib/node_modules
