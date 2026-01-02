@@ -105,8 +105,9 @@ ENV HOST=0.0.0.0
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Non-root user
-RUN useradd -r -u 1001 nextjs
+# Non-root user with home directory for font/cache storage
+RUN useradd -m -u 1001 nextjs
+ENV XDG_CACHE_HOME=/home/nextjs/.cache
 
 # Copy standalone output
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
