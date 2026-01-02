@@ -164,7 +164,7 @@ build-docker:
 	echo "✅ Image tagged as $(DOCKER_IMAGE_NAME):$$tag and $(GHCR_REPO):$$tag"
 
 # Run Docker container (Detached)
-start-docker: stop-compose
+start-docker: stop-docker
 	@read -p "Enter Docker tag to run (default: latest): " tag; \
 	tag=$${tag:-latest}; \
 	echo "🚀 Starting Docker container (detached) with tag: $$tag..."; \
