@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest",
+    "test": "DB_TYPE=sqlite DATABASE_URL=':memory:' jest",
     "test:watch": "jest --watch",
     "encrypt": "tsx scripts/encrypt-pdf.ts"
   },

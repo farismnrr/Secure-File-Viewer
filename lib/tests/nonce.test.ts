@@ -5,7 +5,23 @@
 import { mintNonce, isNonceValid, validateAndConsumeNonce, getNonceInfo } from '../services/nonce';
 import { db, nonces } from '../db';
 
+import { sql } from 'drizzle-orm';
+
 describe('Nonce Management', () => {
+    beforeAll(async () => {
+        // Manual schema setup for SQLite in-memory testing
+        await db.run(sql`
+            CREATE TABLE IF NOT EXISTS nonces (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                doc_id TEXT NOT NULL,
+                nonce TEXT NOT NULL UNIQUE,
+                session_id TEXT NOT NULL,
+                used INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+            );
+        `);
+    });
+
     beforeEach(async () => {
         // Clean up table before each test
         await db.delete(nonces);
