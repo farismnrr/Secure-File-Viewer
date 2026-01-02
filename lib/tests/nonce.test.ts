@@ -29,7 +29,7 @@ describe('Nonce Management', () => {
 
     // In Drizzle/better-sqlite3, we don't strictly need to disconnect for in-memory tests,
     // but closeDatabase() could be called if we exported it.
-    // For now, removing prisma specific disconnect.
+    // For now, removing specific disconnect.
     afterAll(async () => {
         // Optional cleanup
     });

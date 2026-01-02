@@ -92,7 +92,7 @@ export async function getDocument(docId: string): Promise<DocumentMetadata | nul
 }
 
 /**
- * Get all active documents (legacy + prisma?) 
+ * Get all active documents (legacy + database) 
  */
 export async function listDocuments(): Promise<DocumentMetadata[]> {
     const registry = loadRegistry();

@@ -52,8 +52,8 @@ Required environment variables:
 
 ### 4. Database Setup
 ```bash
-make db-generate  # Generate migrations
-make db-push      # Push schema to database
+make migrate-up      # Run migrations/push schema
+make migrate-down    # Reset database (CAUTION: deletes data)
 ```
 
 ### 5. Run Application
@@ -84,9 +84,9 @@ The server will be available at `http://localhost:3000`.
 | `make push` | Trigger CI/CD build |
 | `make push-local` | Build and push multi-arch image |
 | `make update` | Update running container (Watchtower) |
-| `make db-generate` | Generate database migrations |
-| `make db-push` | Push schema changes to DB |
-| `make db-studio` | Open database GUI |
+| `make migrate-up` | Run database migrations |
+| `make migrate-down` | Reset database |
+| `make studio` | Open database GUI |
 | `make key` | Generate encryption key |
 | `make encrypt` | Encrypt a PDF file |
 

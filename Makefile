@@ -250,14 +250,24 @@ compose-logs:
 migrate-up:
 	npx drizzle-kit push
 
-# Migrate Down/Reset is not directly supported by drizzle-kit push exactly like prisma reset
-# but for now we can rely on manual file deletion for sqlite or dropping tables for pg.
+# Migrate Down (Reset)
+# Since drizzle-kit push doesn't have a native 'down', we implement it as a reset.
+migrate-down:
+	@echo "🔄 Resetting database..."
+	@export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
+	if [ "$$DB_TYPE" = "postgres" ]; then \
+		echo "🐘 Resetting PostgreSQL schema..."; \
+		psql $$DATABASE_URL -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"; \
+	else \
+		echo "📁 Resetting SQLite database..."; \
+		db_path=$$(echo $$DATABASE_URL | sed 's/file://'); \
+		rm -f $$db_path; \
+	fi
+	@echo "✅ Database reset. Run 'make migrate-up' to recreate schema."
 
 # Open Drizzle Studio
 studio:
 	npx drizzle-kit studio
-
-
 
 # --- Cleanup ---
 
