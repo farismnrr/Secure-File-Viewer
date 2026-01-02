@@ -94,9 +94,10 @@ RUN apt-get update && apt-get install -y \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-    openssl \
-    && rm -rf /var/lib/apt/lists/*
 
+
+# Install Drizzle CLI and TSX for migrations (Global)
+RUN npm install -g drizzle-kit@0.30.4 tsx
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
@@ -113,6 +114,12 @@ COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 COPY --chown=nextjs:nextjs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
+# Copy config for migrations
+COPY --from=builder --chown=nextjs:nextjs /app/drizzle.config.ts ./
+# Schema is needed for migration, ensure directory exists
+RUN mkdir -p lib/db
+COPY --from=builder --chown=nextjs:nextjs /app/lib/db/schema.ts ./lib/db/
 
 # Create storage and data directories with correct permissions
 RUN mkdir -p storage data
