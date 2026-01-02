@@ -8,11 +8,28 @@ import * as schema from './schema';
 // Database Connection
 // =============================================================================
 
-const DATABASE_URL = process.env.DATABASE_URL || 'file:./dev.db';
+const DB_TYPE = process.env.DB_TYPE || 'sqlite';
+let connectionString = process.env.DATABASE_URL;
 
-// Determine database type from URL
-const isPostgres = DATABASE_URL.startsWith('postgres://') || DATABASE_URL.startsWith('postgresql://');
-const isSqlite = DATABASE_URL.startsWith('file:') || !isPostgres;
+// Construct PostgreSQL connection string from decomposed variables if NOT provided
+if (DB_TYPE === 'postgres' && (!connectionString || !connectionString.startsWith('postgres'))) {
+    const host = process.env.DB_HOST || 'localhost';
+    const port = process.env.DB_PORT || '5432';
+    const user = process.env.DB_USER || 'postgres';
+    const password = process.env.DB_PASSWORD || 'postgres';
+    const dbName = process.env.DB_NAME || 'postgres';
+
+    connectionString = `postgres://${user}:${encodeURIComponent(password)}@${host}:${port}/${dbName}`;
+}
+
+// Fallback for SQLite
+if (!connectionString) {
+    connectionString = 'file:./dev.db';
+}
+
+// Determine database type
+const isPostgres = DB_TYPE === 'postgres';
+const isSqlite = !isPostgres;
 
 // =============================================================================
 // PostgreSQL Connection
@@ -22,7 +39,7 @@ let pgClient: ReturnType<typeof postgres> | null = null;
 let pgDb: ReturnType<typeof drizzlePg> | null = null;
 
 if (isPostgres) {
-    pgClient = postgres(DATABASE_URL);
+    pgClient = postgres(connectionString);
     pgDb = drizzlePg(pgClient, { schema });
 }
 
@@ -34,7 +51,7 @@ let sqliteClient: Database.Database | null = null;
 let sqliteDb: ReturnType<typeof drizzleSqlite> | null = null;
 
 if (isSqlite) {
-    const dbPath = DATABASE_URL.replace('file:', '');
+    const dbPath = connectionString.replace('file:', '');
     sqliteClient = new Database(dbPath);
     sqliteDb = drizzleSqlite(sqliteClient, { schema });
 }
