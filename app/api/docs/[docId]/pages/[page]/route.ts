@@ -202,8 +202,8 @@ export async function GET(
             }
         });
 
-    } catch {
-
+    } catch (error) {
+        console.error('API Error in pages route:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
