@@ -1,0 +1,47 @@
+services:
+  secure-file-viewer:
+    image: ghcr.io/farismnrr/secure-file-viewer:latest
+    container_name: secure-file-viewer
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres-sql
+    networks:
+      - postgres-network
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  user-auth-plugin:
+    image: ghcr.io/farismnrr/user_auth_plugin:latest
+    container_name: user_auth_plugin
+    ports:
+      - "5500:5500"
+    env_file:
+      - services/Multitenant-User-Management-Service/.env
+    networks:
+      - postgres-network
+    volumes:
+      - ./services/Multitenant-User-Management-Service/logs:/app/logs
+      - ./services/Multitenant-User-Management-Service/assets:/app/assets
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5500/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  postgres-network:
+    name: postgres_postgres-network
+    external: true
