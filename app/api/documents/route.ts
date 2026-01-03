@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
         const file = formData.get('file') as File | null;
         const title = formData.get('title') as string | null;
         const shouldEncrypt = formData.get('encrypt') === 'true';
+        const useWatermark = formData.get('watermark') === 'true';
         const password = formData.get('password') as string | null;
 
         // Validation
@@ -192,12 +193,14 @@ export async function POST(request: NextRequest) {
             passwordHash = await hashPassword(password);
         }
 
-        // Default watermark policy
-        const watermarkPolicy = JSON.stringify({
-            showIp: true,
-            showTimestamp: true,
-            showSessionId: true
-        });
+        // Conditional watermark policy based on user choice
+        const watermarkPolicy = useWatermark
+            ? JSON.stringify({
+                showIp: true,
+                showTimestamp: true,
+                showSessionId: true
+            })
+            : null;
 
         // Insert into database using Drizzle
         await db.insert(documents).values({

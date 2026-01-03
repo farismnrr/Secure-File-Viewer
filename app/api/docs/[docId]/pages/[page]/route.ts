@@ -175,14 +175,20 @@ export async function GET(
             pageImage = await renderPage(pdfBuffer, pageNumber, { scale: 2.0 });
         }
 
-        // Apply watermark
-        const timestamp = new Date().toISOString();
-        const watermarkedImage = await applyWatermark(pageImage, {
-            ip: document.watermarkPolicy.showIp ? ip : undefined,
-            timestamp: document.watermarkPolicy.showTimestamp ? timestamp : undefined,
-            sessionId: document.watermarkPolicy.showSessionId ? sessionId : undefined,
-            customText: document.watermarkPolicy.customText
-        });
+        // Apply watermark only if watermarkPolicy is set
+        let finalImage: Buffer;
+        if (document.watermarkPolicy) {
+            const timestamp = new Date().toISOString();
+            finalImage = await applyWatermark(pageImage, {
+                ip: document.watermarkPolicy.showIp ? ip : undefined,
+                timestamp: document.watermarkPolicy.showTimestamp ? timestamp : undefined,
+                sessionId: document.watermarkPolicy.showSessionId ? sessionId : undefined,
+                customText: document.watermarkPolicy.customText
+            });
+        } else {
+            // No watermark - use original image
+            finalImage = pageImage;
+        }
 
         // Log access
         await logAccess(docId, 'page_request', {
@@ -193,7 +199,7 @@ export async function GET(
         });
 
         // Return image with cache headers
-        return new NextResponse(new Uint8Array(watermarkedImage), {
+        return new NextResponse(new Uint8Array(finalImage), {
             headers: {
                 'Content-Type': 'image/png',
                 'Cache-Control': 'no-store, no-cache, must-revalidate',

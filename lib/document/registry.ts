@@ -18,7 +18,7 @@ export interface DocumentMetadata {
         showTimestamp: boolean;
         showSessionId: boolean;
         customText?: string;
-    };
+    } | null;
     status: 'active' | 'inactive';
     createdAt: string;
     updatedAt: string;
@@ -67,7 +67,7 @@ export async function getDocument(docId: string): Promise<DocumentMetadata | nul
         if (doc) {
             const watermarkPolicy = doc.watermarkPolicy
                 ? JSON.parse(doc.watermarkPolicy)
-                : { showIp: true, showTimestamp: true, showSessionId: true };
+                : null;
 
             return {
                 docId: doc.docId,

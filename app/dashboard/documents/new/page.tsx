@@ -20,7 +20,8 @@ import {
     Key,
     Loader2,
     FolderOpen,
-    X
+    X,
+    Droplet
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -36,6 +37,7 @@ export default function UploadDocumentPage() {
     const [usePassword, setUsePassword] = useState(false);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [useWatermark, setUseWatermark] = useState(true);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -155,6 +157,7 @@ export default function UploadDocumentPage() {
             formData.append('file', file);
             formData.append('title', title.trim());
             formData.append('encrypt', encrypt.toString());
+            formData.append('watermark', useWatermark.toString());
 
             if (usePassword && password) {
                 formData.append('password', password);
@@ -303,7 +306,7 @@ export default function UploadDocumentPage() {
                             <div className="space-y-4">
                                 <Label>Security Options</Label>
 
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid md:grid-cols-3 gap-4">
                                     <div
                                         className={cn(
                                             "flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-all hover:bg-accent",
@@ -352,6 +355,32 @@ export default function UploadDocumentPage() {
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 Require a password to view this document.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        className={cn(
+                                            "flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-all hover:bg-accent",
+                                            useWatermark ? "border-cyan-500/50 bg-cyan-500/5" : "border-border"
+                                        )}
+                                        onClick={() => setUseWatermark(!useWatermark)}
+                                    >
+                                        <div className={cn("shrink-0 mt-0.5", useWatermark ? "text-cyan-500" : "text-muted-foreground")}>
+                                            <Droplet className="w-5 h-5" />
+                                        </div>
+                                        <div className="space-y-1 flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-medium text-sm">Watermark</span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={useWatermark}
+                                                    onChange={() => { }}
+                                                    className="accent-cyan-500 h-4 w-4"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Add visible watermark with user info to track document access.
                                             </p>
                                         </div>
                                     </div>
