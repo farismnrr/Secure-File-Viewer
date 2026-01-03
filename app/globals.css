@@ -248,14 +248,19 @@
 .viewer-content {
   flex: 1;
   overflow: auto;
-  display: flex;
-  justify-content: center;
+  display: block;
   padding: 2rem;
   position: relative;
   background: #0f172a;
 }
 
+.zoom-wrapper {
+  display: inline-block;
+  min-width: 100%;
+}
+
 .page-container {
+  display: inline-block;
   transition: transform 0.2s ease;
 }
 
@@ -351,7 +356,91 @@
   font-family: monospace;
 }
 
-/* Watermark Overlay */
+/* AI-Resistant Watermark Overlay */
+
+/* Noise layer - confuses AI detection */
+.watermark-noise-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 48;
+  background-image:
+    repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.005) 2px,
+      rgba(255, 255, 255, 0.005) 4px),
+    repeating-linear-gradient(90deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.005) 2px,
+      rgba(255, 255, 255, 0.005) 4px);
+  opacity: 0.3;
+}
+
+/* Gradient overlay layer - adds complexity */
+.watermark-gradient-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 49;
+  background:
+    radial-gradient(ellipse at 20% 30%,
+      rgba(100, 100, 100, 0.015) 0%,
+      transparent 50%),
+    radial-gradient(ellipse at 80% 70%,
+      rgba(100, 100, 100, 0.015) 0%,
+      transparent 50%);
+}
+
+/* Main watermark container */
+.watermark-overlay-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+}
+
+/* Individual watermark tile */
+.watermark-tile {
+  position: absolute;
+  width: 16.666%;
+  /* 100% / 6 cols */
+  height: 12.5%;
+  /* 100% / 8 rows */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Watermark text with complex styling */
+.watermark-text {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(150, 150, 150, 0.12);
+  text-align: center;
+  white-space: nowrap;
+  text-shadow:
+    0 0 1px rgba(255, 255, 255, 0.1),
+    1px 1px 2px rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.5px;
+  /* Add gradient to text */
+  background: linear-gradient(135deg,
+      rgba(150, 150, 150, 0.15) 0%,
+      rgba(100, 100, 100, 0.08) 50%,
+      rgba(150, 150, 150, 0.15) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Fallback for browsers that don't support background-clip */
+  color: rgba(150, 150, 150, 0.12);
+}
+
+/* Legacy watermark overlay (kept for backward compatibility) */
 .watermark-overlay {
   position: fixed;
   inset: 0;

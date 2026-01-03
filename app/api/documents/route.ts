@@ -89,7 +89,8 @@ export async function GET(request: NextRequest) {
                 }
             }
         });
-    } catch {
+    } catch (error) {
+        console.error('[GET /api/documents] List failed:', error);
 
         return NextResponse.json(
             { status: false, message: 'Failed to list documents' },
@@ -225,10 +226,19 @@ export async function POST(request: NextRequest) {
                 viewUrl: `/v/${docId}`
             }
         }, { status: 201 });
-    } catch {
+    } catch (error) {
+        console.error('[POST /api/documents] Upload failed:', error);
+        console.error('[POST /api/documents] Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        });
 
         return NextResponse.json(
-            { status: false, message: 'Failed to upload document' },
+            {
+                status: false,
+                message: 'Failed to upload document',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            },
             { status: 500 }
         );
     }

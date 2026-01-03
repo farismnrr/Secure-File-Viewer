@@ -142,30 +142,32 @@ export default function SecureViewer({
 
             {/* Page display */}
             <main className="viewer-content">
-                <div
-                    className="page-container"
-                    style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-                >
-                    {loadedPages.has(currentPage) ? (
-                        <Image
-                            src={loadedPages.get(currentPage) || ''}
-                            alt={`Page ${currentPage}`}
-                            className="page-image"
-                            draggable={false}
-                            onDragStart={(e) => e.preventDefault()}
-                            width={800}
-                            height={1100}
-                            unoptimized
-                            style={{ width: 'auto', height: 'auto', maxWidth: '100%' }}
-                        />
-                    ) : (
-                        <div className="page-skeleton">
-                            <div className="skeleton-content">
-                                <div className="spinner" />
-                                <p>Loading page {currentPage}...</p>
+                <div className="zoom-wrapper">
+                    <div
+                        className="page-container"
+                        style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+                    >
+                        {loadedPages.has(currentPage) ? (
+                            <Image
+                                src={loadedPages.get(currentPage) || ''}
+                                alt={`Page ${currentPage}`}
+                                className="page-image"
+                                draggable={false}
+                                onDragStart={(e) => e.preventDefault()}
+                                width={800}
+                                height={1100}
+                                unoptimized
+                                style={{ width: 'auto', height: 'auto', maxWidth: '100%' }}
+                            />
+                        ) : (
+                            <div className="page-skeleton">
+                                <div className="skeleton-content">
+                                    <div className="spinner" />
+                                    <p>Loading page {currentPage}...</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
 
                 {/* Client-side watermark overlay */}

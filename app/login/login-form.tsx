@@ -5,8 +5,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Lock, Loader2 } from "lucide-react";
@@ -18,9 +18,24 @@ interface LoginFormProps {
 
 export function LoginForm({ ssoUrl, tenantId }: LoginFormProps) {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const error = searchParams.get('error');
     const redirect = searchParams.get('redirect') || '/dashboard';
+
+    // Auto-clear error from URL after 5 seconds
+    useEffect(() => {
+        if (error) {
+            const timer = setTimeout(() => {
+                // Remove error from URL without page reload
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.delete('error');
+                router.replace(newUrl.pathname + newUrl.search);
+            }, 5000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [error, router]);
 
     const handleLogin = () => {
         setIsLoading(true);
