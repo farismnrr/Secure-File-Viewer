@@ -59,7 +59,6 @@ COPY components ./components
 COPY lib ./lib
 COPY scripts ./scripts
 COPY drizzle.config.ts ./
-COPY middleware.ts ./
 
 # Build
 ENV NODE_ENV=production
